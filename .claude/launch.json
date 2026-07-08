@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "horse-education-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173,
+      "cwd": "/Users/minorukadota/Library/Mobile Documents/com~apple~CloudDocs/github2/Horse_Education-"
+    }
+  ]
+}
