@@ -318,8 +318,11 @@ export function EvaluationSheetWithData() {
                     onChange={(e) =>
                       setBasicInfo((b) => ({ ...b, date: e.target.value }))
                     }
-                    className="h-8 w-28 border-none bg-transparent p-0 text-right text-sm font-medium"
+                    className="no-export h-8 w-28 border-none bg-transparent p-0 text-right text-sm font-medium"
                   />
+                  <span className="export-only text-sm font-medium">
+                    {basicInfo.date}
+                  </span>
                 </div>
               </div>
             </div>
@@ -335,8 +338,11 @@ export function EvaluationSheetWithData() {
                   <Input
                     value={current.name}
                     readOnly
-                    className="h-8 border-0 border-b border-border bg-transparent px-1"
+                    className="no-export h-8 border-0 border-b border-border bg-transparent px-1"
                   />
+                  <span className="export-only w-full border-b border-border px-1 py-1">
+                    {current.name}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-24 shrink-0 font-medium">所属</span>
@@ -345,8 +351,11 @@ export function EvaluationSheetWithData() {
                     onChange={(e) =>
                       setBasicInfo((b) => ({ ...b, affiliation: e.target.value }))
                     }
-                    className="h-8 border-0 border-b border-border bg-transparent px-1"
+                    className="no-export h-8 border-0 border-b border-border bg-transparent px-1"
                   />
+                  <span className="export-only w-full border-b border-border px-1 py-1">
+                    {basicInfo.affiliation}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-24 shrink-0 font-medium">講師</span>
@@ -355,8 +364,11 @@ export function EvaluationSheetWithData() {
                     onChange={(e) =>
                       setBasicInfo((b) => ({ ...b, instructor: e.target.value }))
                     }
-                    className="h-8 border-0 border-b border-border bg-transparent px-1"
+                    className="no-export h-8 border-0 border-b border-border bg-transparent px-1"
                   />
+                  <span className="export-only w-full border-b border-border px-1 py-1">
+                    {basicInfo.instructor}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-24 shrink-0 font-medium">研修プログラム</span>
@@ -365,8 +377,11 @@ export function EvaluationSheetWithData() {
                     onChange={(e) =>
                       setBasicInfo((b) => ({ ...b, program: e.target.value }))
                     }
-                    className="h-8 border-0 border-b border-border bg-transparent px-1"
+                    className="no-export h-8 border-0 border-b border-border bg-transparent px-1"
                   />
+                  <span className="export-only w-full border-b border-border px-1 py-1">
+                    {basicInfo.program}
+                  </span>
                 </div>
               </div>
             </section>
@@ -454,15 +469,21 @@ export function EvaluationSheetWithData() {
                         <Textarea
                           value={row.preHigher}
                           onChange={(e) => updateReference(i, "preHigher", e.target.value)}
-                          className="min-h-[68px] resize-none border-none bg-transparent p-1 text-xs leading-snug"
+                          className="no-export min-h-[68px] resize-none border-none bg-transparent p-1 text-xs leading-snug"
                         />
+                        <div className="export-only whitespace-pre-line p-1 text-xs leading-snug">
+                          {row.preHigher}
+                        </div>
                       </td>
                       <td className="border border-evaluation-table-border p-1 align-top">
                         <Textarea
                           value={row.postHigher}
                           onChange={(e) => updateReference(i, "postHigher", e.target.value)}
-                          className="min-h-[68px] resize-none border-none bg-transparent p-1 text-xs leading-snug"
+                          className="no-export min-h-[68px] resize-none border-none bg-transparent p-1 text-xs leading-snug"
                         />
+                        <div className="export-only whitespace-pre-line p-1 text-xs leading-snug">
+                          {row.postHigher}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -503,8 +524,11 @@ export function EvaluationSheetWithData() {
                         )
                       )
                     }
-                    className="min-h-[400px] bg-white/50 text-sm leading-relaxed"
+                    className="no-export min-h-[400px] bg-white/50 text-sm leading-relaxed"
                   />
+                  <div className="export-only p-2">
+                    <FormattedComment text={current.aiComment} />
+                  </div>
                   <Button
                     size="sm"
                     className="no-export"

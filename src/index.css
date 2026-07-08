@@ -62,6 +62,12 @@ body {
   word-break: break-word;
 }
 
+/* 改行を保持したいテキスト（参考指標の箇条書き等）は pre-line を維持 */
+.exporting .whitespace-pre-line,
+.exporting-compact .whitespace-pre-line {
+  white-space: pre-line !important;
+}
+
 .exporting .truncate,
 .exporting-compact .truncate {
   overflow: visible !important;
@@ -69,8 +75,19 @@ body {
   white-space: normal !important;
 }
 
-/* エクスポート時は編集用UI（ボタン等）を隠す */
+/* エクスポート時は編集用UI（ボタン・input・textarea等）を隠す */
 .exporting .no-export,
 .exporting-compact .no-export {
   display: none !important;
+}
+
+/* html2canvas は input/textarea の折り返し・改行を描画できないため、
+   エクスポート時のみプレーンテキスト表示に切り替える */
+.export-only {
+  display: none;
+}
+
+.exporting .export-only,
+.exporting-compact .export-only {
+  display: block;
 }
