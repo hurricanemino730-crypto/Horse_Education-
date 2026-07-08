@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 30 50% 90%;
+  --foreground: 20 25% 29%;
+  --card: 30 50% 96%;
+  --primary: 20 25% 29%;
+  --primary-foreground: 30 50% 90%;
+  --secondary: 25 35% 85%;
+  --muted: 25 35% 85%;
+  --muted-foreground: 20 15% 45%;
+  --border: 25 30% 75%;
+  --evaluation-bg: 30 50% 90%;
+  --evaluation-header: 25 35% 85%;
+  --evaluation-table-header: 25 35% 85%;
+  --evaluation-table-border: 25 30% 75%;
+  --chart-pre-training: 220 65% 35%;
+  --chart-post-training: 340 35% 50%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: "Noto Sans JP", "Inter", sans-serif;
+}
+
+.font-japanese {
+  font-family: "Noto Sans JP", sans-serif;
+  font-feature-settings: "palt" 1;
+}
+
+.font-english-title {
+  font-family: "Playfair Display", "Inter", serif;
+}
+
+.shadow-elegant {
+  box-shadow: 0 10px 30px -10px hsl(20 25% 29% / 0.25);
+}
+
+/* PDF エクスポート時：寸法・フォントを 1000x1414 / 14px に固定 */
+.exporting,
+.exporting-compact {
+  width: 1000px !important;
+  min-width: 1000px !important;
+  max-width: 1000px !important;
+  height: 1414px !important;
+  min-height: 1414px !important;
+  font-size: 14px !important;
+  overflow: hidden !important;
+}
+
+.exporting *,
+.exporting-compact * {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.exporting .truncate,
+.exporting-compact .truncate {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+/* エクスポート時は編集用UI（ボタン等）を隠す */
+.exporting .no-export,
+.exporting-compact .no-export {
+  display: none !important;
+}
