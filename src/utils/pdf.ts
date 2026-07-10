@@ -5,7 +5,15 @@ import {
   PAGE_H,
   CANVAS_SCALE,
   PAGE_MARGIN,
+  PAGE_BACKGROUND,
 } from "./pdf-constants";
+
+/** ページ全体をシートと同じ背景色で塗りつぶす（jsPDFの既定は白のため、
+ * これをしないと余白部分が白く浮いて印刷時に目立ってしまう） */
+function fillPageBackground(pdf: jsPDF): void {
+  pdf.setFillColor(PAGE_BACKGROUND);
+  pdf.rect(0, 0, PAGE_W, PAGE_H, "F");
+}
 
 /**
  * 要素に .exporting クラスを付与して 1000x1414px に固定し、
@@ -46,6 +54,7 @@ export async function buildPdf(
     format: [PAGE_W, PAGE_H],
   });
 
+  fillPageBackground(pdf);
   const canvas1 = await rasterizeToCanvas(page1);
   pdf.addImage(
     canvas1.toDataURL("image/png"),
@@ -59,6 +68,7 @@ export async function buildPdf(
   if (page2) {
     const canvas2 = await rasterizeToCanvas(page2);
     pdf.addPage([PAGE_W, PAGE_H], "p");
+    fillPageBackground(pdf);
     pdf.addImage(
       canvas2.toDataURL("image/png"),
       "PNG",
