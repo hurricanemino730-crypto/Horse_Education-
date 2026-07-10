@@ -544,10 +544,7 @@ export function EvaluationSheetWithData() {
 
               {/* チームからのメッセージ（スタッフが手動で記入する自由記述） */}
               <div className="rounded-md border border-evaluation-table-border p-4">
-                <p
-                  className="mb-2 font-bold tracking-wide"
-                  style={{ fontFeatureSettings: "normal" }}
-                >
+                <p className="mb-2 font-bold tracking-wide">
                   【チームからのメッセージ】
                 </p>
                 <div className="mb-2 w-40">

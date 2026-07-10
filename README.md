@@ -38,7 +38,7 @@ npm run build          # 本番ビルド → dist/
 
 ## AI 総合評価
 
-Google Gemini（gemini-2.5-flash）のみを使用します。APIキーは以下の優先順で使用されます：
+Google Gemini（gemini-2.5-pro）のみを使用します。APIキーは以下の優先順で使用されます：
 
 1. `.env` の `VITE_GEMINI_API_KEY`
 2. 画面上のダイアログで入力（localStorage に保存）

@@ -34,7 +34,6 @@ body {
 
 .font-japanese {
   font-family: "Noto Sans JP", sans-serif;
-  font-feature-settings: "palt" 1;
 }
 
 .font-english-title {
