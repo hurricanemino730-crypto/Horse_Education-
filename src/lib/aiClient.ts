@@ -77,8 +77,19 @@ function parseAIEvaluation(raw: string): AIEvaluation {
   return result;
 }
 
+function extractErrorMessage(body: string): string {
+  try {
+    const parsed = JSON.parse(body);
+    return parsed?.error?.message ?? body.slice(0, 200);
+  } catch {
+    return body.slice(0, 200);
+  }
+}
+
 async function callGemini(apiKey: string, userPrompt: string): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+  // gemini-2.5-flash: 無料枠のクォータが gemini-2.5-pro より大幅に広く、
+  // 参加者複数名分を連続生成しても 429 (クォータ超過) になりにくい
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -93,8 +104,13 @@ async function callGemini(apiKey: string, userPrompt: string): Promise<string> {
     }),
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Gemini API エラー (${res.status}): ${body.slice(0, 200)}`);
+    const message = extractErrorMessage(await res.text());
+    if (res.status === 429) {
+      throw new Error(
+        `Gemini APIの利用上限（クォータ）に達しました。しばらく時間をおくか、Google AI Studio でプランをご確認ください。（${message}）`
+      );
+    }
+    throw new Error(`Gemini API エラー (${res.status}): ${message}`);
   }
   const data = await res.json();
   return (
