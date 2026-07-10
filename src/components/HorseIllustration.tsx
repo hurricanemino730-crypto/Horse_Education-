@@ -1,17 +1,31 @@
-// 馬の頭部シルエットイラスト（インラインSVG）
+// 馬の頭部・たてがみの線画イラスト（インラインSVG、アウトラインスタイル）
 export function HorseIllustration({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="0 0 220 180"
       className={className}
       xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-label="馬のイラスト"
     >
-      <path
-        fill="currentColor"
-        d="M63 8l-6 12c-2-.6-4.2-1-6.4-1-1.3 0-2.6.1-3.8.4L40 10c-.4-.8-1.6-.6-1.8.3l-2 12.2c-6.5 4.2-11 11.3-11.8 19.5L22 76c-.3 3.3-1.7 6.4-4 8.8l-4.6 4.8c-.6.6-.2 1.7.7 1.7h25.2c.6 0 1-.4 1.1-.9l1.8-10.9c.4-2.6 2.7-4.5 5.3-4.5H58c7 0 13.4-3.7 17-9.6 2.3-3.9 3.4-8.4 3-12.9l-.6-6.5 8.9 3.6c.8.3 1.6-.5 1.3-1.3l-5.9-15.6c-2.7-7.2-8.6-12.7-15.9-14.9L64.8 8.2c-.3-.9-1.4-1-1.8-.2z"
-      />
-      <circle fill="hsl(30 50% 90%)" cx="62" cy="30" r="2.2" />
+      {/* 顔の輪郭 */}
+      <path d="M120 20 C104 22 92 34 88 52 C85 66 88 80 82 92 C76 104 62 108 58 122 C55 132 60 142 70 146 C82 150 96 144 104 134 C110 126 112 116 118 108 C126 98 140 96 148 86 C156 76 156 60 150 46 C144 32 132 20 120 20 Z" />
+      {/* 鼻先の陰影ライン */}
+      <path d="M70 130 C76 128 82 124 86 118" strokeWidth="1.4" opacity="0.6" />
+      {/* 耳 */}
+      <path d="M112 24 C110 14 112 4 118 -2" strokeWidth="1.6" opacity="0" />
+      <path d="M108 26 L114 4" strokeWidth="1.6" />
+      {/* たてがみ（複数の流れる線） */}
+      <path d="M116 22 C140 10 168 14 186 34 C198 48 202 66 196 82" strokeWidth="1.6" opacity="0.85" />
+      <path d="M126 30 C148 22 172 28 186 46 C194 58 196 72 190 84" strokeWidth="1.4" opacity="0.7" />
+      <path d="M134 40 C152 36 170 42 180 56 C186 66 186 76 180 84" strokeWidth="1.3" opacity="0.55" />
+      <path d="M140 52 C154 50 166 56 172 66" strokeWidth="1.2" opacity="0.4" />
+      {/* 目 */}
+      <circle cx="118" cy="56" r="2.4" fill="currentColor" stroke="none" />
     </svg>
   );
 }

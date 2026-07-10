@@ -6,12 +6,28 @@ export interface SkillScores {
   acting: number;
 }
 
+export interface AIEvaluation {
+  being: string;
+  thinking: string;
+  relating: string;
+  collaborating: string;
+  acting: string;
+  summary: string;
+}
+
+export interface TeamMessage {
+  /** メッセージを書いたチームメンバーの呼称（例: のぶさん） */
+  author: string;
+  body: string;
+}
+
 export interface ParticipantData {
   name: string;
   preTraining?: SkillScores;
   postTraining?: SkillScores;
   improvement?: SkillScores;
-  aiComment?: string;
+  aiEvaluation?: AIEvaluation;
+  teamMessage?: TeamMessage;
 }
 
 export type SkillKey = keyof SkillScores;
@@ -22,6 +38,15 @@ export const SKILL_KEYS: SkillKey[] = [
   "relating",
   "collaborating",
   "acting",
+];
+
+/** レーダーチャートの軸表示順（実運用テンプレートに合わせ、上から時計回り） */
+export const RADAR_AXIS_ORDER: SkillKey[] = [
+  "acting",
+  "collaborating",
+  "relating",
+  "being",
+  "thinking",
 ];
 
 export const SKILL_LABELS: Record<SkillKey, { en: string; ja: string; subtitle: string }> = {

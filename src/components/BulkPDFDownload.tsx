@@ -13,7 +13,7 @@ interface Props {
   selectParticipant: (index: number) => Promise<void>;
   getPage1: () => HTMLElement | null;
   getPage2: () => HTMLElement | null;
-  getComment: (index: number) => string | undefined;
+  hasEvaluation: (index: number) => boolean;
 }
 
 export function BulkPDFDownload({
@@ -22,7 +22,7 @@ export function BulkPDFDownload({
   selectParticipant,
   getPage1,
   getPage2,
-  getComment,
+  hasEvaluation,
 }: Props) {
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -37,8 +37,7 @@ export function BulkPDFDownload({
         await selectParticipant(i);
         const page1 = getPage1();
         if (!page1) throw new Error("評価シートが見つかりません");
-        const hasComment = Boolean(getComment(i));
-        const pdf = await buildPdf(page1, hasComment ? getPage2() : null);
+        const pdf = await buildPdf(page1, hasEvaluation(i) ? getPage2() : null);
         zip.file(
           `評価シート_${participants[i].name}.pdf`,
           pdf.output("blob")

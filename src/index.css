@@ -16,8 +16,10 @@
   --evaluation-header: 25 35% 85%;
   --evaluation-table-header: 25 35% 85%;
   --evaluation-table-border: 25 30% 75%;
-  --chart-pre-training: 220 65% 35%;
-  --chart-post-training: 340 35% 50%;
+  --chart-pre-training: 150 30% 65%;
+  --chart-post-training: 20 60% 75%;
+  --chart-pre-bg: 150 35% 92%;
+  --chart-post-bg: 20 55% 92%;
 }
 
 * {
@@ -90,4 +92,13 @@ body {
 .exporting .export-only,
 .exporting-compact .export-only {
   display: block;
+}
+
+.export-only-inline {
+  display: none;
+}
+
+.exporting .export-only-inline,
+.exporting-compact .export-only-inline {
+  display: inline;
 }

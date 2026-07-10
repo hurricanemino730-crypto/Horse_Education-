@@ -33,6 +33,8 @@ export default {
         chart: {
           pre: "hsl(var(--chart-pre-training))",
           post: "hsl(var(--chart-post-training))",
+          "pre-bg": "hsl(var(--chart-pre-bg))",
+          "post-bg": "hsl(var(--chart-post-bg))",
         },
       },
       boxShadow: {

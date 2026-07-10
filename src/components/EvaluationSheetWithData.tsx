@@ -19,45 +19,61 @@ import { CustomPDFDownload } from "@/components/CustomPDFDownload";
 import { BulkPDFDownload } from "@/components/BulkPDFDownload";
 import { parseExcelFile, mergeParticipants } from "@/lib/excelProcessor";
 import {
-  generateAIComment,
+  generateAIEvaluation,
   getStoredApiKey,
   storeApiKey,
   type AIProvider,
 } from "@/lib/aiClient";
 import type { ParticipantData } from "@/types/survey";
-import { SKILL_KEYS, SKILL_LABELS } from "@/types/survey";
+import { SKILL_LABELS } from "@/types/survey";
 import {
   DEFAULT_REFERENCE_ROWS,
   DEFAULT_BASIC_INFO,
   type ReferenceRow,
 } from "@/data/referenceIndicators";
 
-/** `**text**` を <strong> に、改行を <br> に変換して表示する */
-function FormattedComment({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return (
-    <p className="text-sm leading-relaxed">
-      {parts.map((part, i) => {
-        const bold = part.match(/^\*\*([^*]+)\*\*$/);
-        const content = bold ? bold[1] : part;
-        const lines = content.split("\n");
-        const rendered = lines.map((line, j) => (
-          <span key={j}>
-            {j > 0 && <br />}
-            {line}
-          </span>
-        ));
-        return bold ? <strong key={i}>{rendered}</strong> : <span key={i}>{rendered}</span>;
-      })}
-    </p>
-  );
-}
+const EVALUATION_CATEGORY_KEYS = [
+  "being",
+  "thinking",
+  "relating",
+  "collaborating",
+  "acting",
+] as const;
 
-function ImprovementCell({ value }: { value?: number }) {
-  if (value === undefined) return <span className="text-gray-400">—</span>;
-  if (value > 0) return <span className="font-semibold text-green-700">+{value}</span>;
-  if (value < 0) return <span className="font-semibold text-red-600">{value}</span>;
-  return <span className="text-gray-500">0</span>;
+/** 編集可能な1行分のフィールド（画面では常時編集可、PDF出力時のみプレーンテキストに切り替える） */
+function EditableField({
+  value,
+  onChange,
+  multiline = false,
+  inputClassName = "",
+  textClassName = "",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  multiline?: boolean;
+  inputClassName?: string;
+  textClassName?: string;
+}) {
+  return (
+    <>
+      {multiline ? (
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`no-export resize-none border-none bg-transparent p-1 ${inputClassName}`}
+        />
+      ) : (
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`no-export border-none bg-transparent p-1 ${inputClassName}`}
+        />
+      )}
+      <div className={`export-only whitespace-pre-line p-1 ${textClassName}`}>
+        {value}
+      </div>
+    </>
+  );
 }
 
 export function EvaluationSheetWithData() {
@@ -76,7 +92,6 @@ export function EvaluationSheetWithData() {
   const [provider, setProvider] = useState<AIProvider>("openai");
   const [showKeyDialog, setShowKeyDialog] = useState(false);
   const [keyInput, setKeyInput] = useState("");
-  const [editingComment, setEditingComment] = useState(false);
 
   const page1Ref = useRef<HTMLDivElement>(null);
   const page2Ref = useRef<HTMLDivElement>(null);
@@ -84,6 +99,12 @@ export function EvaluationSheetWithData() {
   participantsRef.current = participants;
 
   const current = participants[currentIndex];
+
+  const updateCurrent = (patch: Partial<ParticipantData>) => {
+    setParticipants((prev) =>
+      prev.map((p, i) => (i === currentIndex ? { ...p, ...patch } : p))
+    );
+  };
 
   const handleAnalyze = async () => {
     if (!preFile && !postFile) {
@@ -110,23 +131,21 @@ export function EvaluationSheetWithData() {
     }
   };
 
-  const handleGenerateComment = async () => {
+  const handleGenerateEvaluation = async () => {
     if (!current) return;
-    let apiKey = getStoredApiKey(provider);
+    const apiKey = getStoredApiKey(provider);
     if (!apiKey) {
       setShowKeyDialog(true);
       return;
     }
     setGenerating(true);
     try {
-      const comment = await generateAIComment(current, provider, apiKey);
-      setParticipants((prev) =>
-        prev.map((p, i) => (i === currentIndex ? { ...p, aiComment: comment } : p))
-      );
-      toast.success("総合評価コメントを生成しました");
+      const evaluation = await generateAIEvaluation(current, provider, apiKey);
+      updateCurrent({ aiEvaluation: evaluation });
+      toast.success("総合評価を生成しました");
     } catch (e) {
       console.error(e);
-      toast.error(e instanceof Error ? e.message : "AIコメント生成に失敗しました");
+      toast.error(e instanceof Error ? e.message : "AI総合評価の生成に失敗しました");
     } finally {
       setGenerating(false);
     }
@@ -138,7 +157,7 @@ export function EvaluationSheetWithData() {
     setKeyInput("");
     setShowKeyDialog(false);
     toast.success("APIキーを保存しました");
-    handleGenerateComment();
+    handleGenerateEvaluation();
   };
 
   const selectParticipantAndWait = async (index: number) => {
@@ -155,6 +174,102 @@ export function EvaluationSheetWithData() {
       prev.map((row, i) => (i === rowIndex ? { ...row, [field]: value } : row))
     );
   };
+
+  const SheetHeader = ({
+    subtitleJa,
+    subtitleEn,
+  }: {
+    subtitleJa: string;
+    subtitleEn: string;
+  }) => (
+    <div className="mb-6 flex items-end justify-between border-b-2 border-primary pb-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-wide">
+          Horse&nbsp;&nbsp;Education Program
+        </h1>
+        <p className="mt-1 text-xl font-bold">{subtitleJa}</p>
+        <p className="text-xs font-medium tracking-[0.25em] text-muted-foreground">
+          {subtitleEn}
+        </p>
+      </div>
+      <HorseIllustration className="h-20 w-28 text-primary" />
+      <div className="text-right text-sm">
+        <p>
+          <span className="text-muted-foreground">実施日　：</span>
+          <EditableFieldInline
+            value={basicInfo.date}
+            onChange={(v) => setBasicInfo((b) => ({ ...b, date: v }))}
+          />
+        </p>
+        <p className="mt-1">
+          <span className="text-muted-foreground">実施場所：</span>
+          <EditableFieldInline
+            value={basicInfo.venue}
+            onChange={(v) => setBasicInfo((b) => ({ ...b, venue: v }))}
+          />
+        </p>
+      </div>
+    </div>
+  );
+
+  const BasicInfoTable = () => (
+    <section className="mb-6">
+      <h2 className="mb-3 bg-evaluation-header px-3 py-1.5 text-base font-bold">
+        1. 基本情報
+      </h2>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-0 text-sm">
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              <td className="w-24 border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
+                受講者
+              </td>
+              <td className="border border-evaluation-table-border px-3 py-2">
+                {current?.name} 様
+              </td>
+            </tr>
+            <tr>
+              <td className="border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
+                所属
+              </td>
+              <td className="border border-evaluation-table-border px-1 py-1">
+                <EditableFieldInline
+                  value={basicInfo.affiliation}
+                  onChange={(v) => setBasicInfo((b) => ({ ...b, affiliation: v }))}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              <td className="w-28 border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
+                講師
+              </td>
+              <td className="border border-evaluation-table-border px-1 py-1">
+                <EditableFieldInline
+                  value={basicInfo.instructor}
+                  onChange={(v) => setBasicInfo((b) => ({ ...b, instructor: v }))}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td className="border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
+                研修プログラム
+              </td>
+              <td className="border border-evaluation-table-border px-1 py-1">
+                <EditableFieldInline
+                  value={basicInfo.program}
+                  onChange={(v) => setBasicInfo((b) => ({ ...b, program: v }))}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
 
   return (
     <div className="mx-auto max-w-[1800px] px-4 py-8 font-japanese">
@@ -238,7 +353,7 @@ export function EvaluationSheetWithData() {
                 <option value="openai">OpenAI (gpt-4o-mini)</option>
                 <option value="gemini">Gemini (gemini-2.5-flash)</option>
               </select>
-              <Button onClick={handleGenerateComment} disabled={generating}>
+              <Button onClick={handleGenerateEvaluation} disabled={generating}>
                 {generating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -248,7 +363,7 @@ export function EvaluationSheetWithData() {
               </Button>
               <CustomPDFDownload
                 participantName={current.name}
-                hasComment={Boolean(current.aiComment)}
+                hasEvaluation={Boolean(current.aiEvaluation)}
                 getPage1={() => page1Ref.current}
                 getPage2={() => page2Ref.current}
               />
@@ -258,7 +373,7 @@ export function EvaluationSheetWithData() {
                 selectParticipant={selectParticipantAndWait}
                 getPage1={() => page1Ref.current}
                 getPage2={() => page2Ref.current}
-                getComment={(i) => participantsRef.current[i]?.aiComment}
+                hasEvaluation={(i) => Boolean(participantsRef.current[i]?.aiEvaluation)}
               />
             </div>
           </div>
@@ -299,142 +414,15 @@ export function EvaluationSheetWithData() {
             className="mx-auto mb-8 w-[1000px] max-w-full rounded-xl bg-background p-10 shadow-elegant"
             style={{ backgroundColor: "hsl(30 50% 90%)" }}
           >
-            {/* ヘッダー */}
-            <div className="mb-6 flex items-center justify-between border-b-2 border-primary pb-4">
-              <div>
-                <h1 className="font-english-title text-3xl font-semibold tracking-wide">
-                  Horse Education Program
-                </h1>
-                <p className="mt-1 text-lg font-medium tracking-[0.3em]">
-                  SELF EVALUATION SHEET
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <HorseIllustration className="h-16 w-20 text-primary" />
-                <div className="text-right text-sm">
-                  <p className="text-muted-foreground">研修実施日</p>
-                  <Input
-                    value={basicInfo.date}
-                    onChange={(e) =>
-                      setBasicInfo((b) => ({ ...b, date: e.target.value }))
-                    }
-                    className="no-export h-8 w-28 border-none bg-transparent p-0 text-right text-sm font-medium"
-                  />
-                  <span className="export-only text-sm font-medium">
-                    {basicInfo.date}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 1. 基本情報 */}
-            <section className="mb-6">
-              <h2 className="mb-3 bg-evaluation-header px-3 py-1.5 text-base font-bold">
-                1. 基本情報
-              </h2>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-2 px-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-24 shrink-0 font-medium">受講者</span>
-                  <Input
-                    value={current.name}
-                    readOnly
-                    className="no-export h-8 border-0 border-b border-border bg-transparent px-1"
-                  />
-                  <span className="export-only w-full border-b border-border px-1 py-1">
-                    {current.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-24 shrink-0 font-medium">所属</span>
-                  <Input
-                    value={basicInfo.affiliation}
-                    onChange={(e) =>
-                      setBasicInfo((b) => ({ ...b, affiliation: e.target.value }))
-                    }
-                    className="no-export h-8 border-0 border-b border-border bg-transparent px-1"
-                  />
-                  <span className="export-only w-full border-b border-border px-1 py-1">
-                    {basicInfo.affiliation}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-24 shrink-0 font-medium">講師</span>
-                  <Input
-                    value={basicInfo.instructor}
-                    onChange={(e) =>
-                      setBasicInfo((b) => ({ ...b, instructor: e.target.value }))
-                    }
-                    className="no-export h-8 border-0 border-b border-border bg-transparent px-1"
-                  />
-                  <span className="export-only w-full border-b border-border px-1 py-1">
-                    {basicInfo.instructor}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-24 shrink-0 font-medium">研修プログラム</span>
-                  <Input
-                    value={basicInfo.program}
-                    onChange={(e) =>
-                      setBasicInfo((b) => ({ ...b, program: e.target.value }))
-                    }
-                    className="no-export h-8 border-0 border-b border-border bg-transparent px-1"
-                  />
-                  <span className="export-only w-full border-b border-border px-1 py-1">
-                    {basicInfo.program}
-                  </span>
-                </div>
-              </div>
-            </section>
+            <SheetHeader subtitleJa="自己評価" subtitleEn="SELF EVALUATION" />
+            <BasicInfoTable />
 
             {/* 2. 自己評価結果 */}
             <section className="mb-6">
               <h2 className="mb-3 bg-evaluation-header px-3 py-1.5 text-base font-bold">
                 2. 自己評価結果
               </h2>
-              <div className="grid grid-cols-2 items-center gap-4">
-                <div>
-                  <SkillRadarChart participant={current} />
-                </div>
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-evaluation-table-header">
-                      <th className="border border-evaluation-table-border px-2 py-1.5 text-left">
-                        スキル
-                      </th>
-                      <th className="border border-evaluation-table-border px-2 py-1.5">
-                        研修前
-                      </th>
-                      <th className="border border-evaluation-table-border px-2 py-1.5">
-                        研修後
-                      </th>
-                      <th className="border border-evaluation-table-border px-2 py-1.5">
-                        変化
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {SKILL_KEYS.map((key) => (
-                      <tr key={key}>
-                        <td className="border border-evaluation-table-border px-2 py-1.5">
-                          <span className="font-medium">{SKILL_LABELS[key].en}</span>
-                          <span className="ml-1 text-xs text-muted-foreground">
-                            {SKILL_LABELS[key].ja}
-                          </span>
-                        </td>
-                        <td className="border border-evaluation-table-border px-2 py-1.5 text-center">
-                          {current.preTraining?.[key] ?? "—"}
-                        </td>
-                        <td className="border border-evaluation-table-border px-2 py-1.5 text-center">
-                          {current.postTraining?.[key] ?? "—"}
-                        </td>
-                        <td className="border border-evaluation-table-border px-2 py-1.5 text-center">
-                          <ImprovementCell value={current.improvement?.[key]} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <SkillRadarChart participant={current} />
             </section>
 
             {/* 3. 参考指標 */}
@@ -444,14 +432,14 @@ export function EvaluationSheetWithData() {
               </h2>
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-evaluation-table-header">
-                    <th className="w-[14%] border border-evaluation-table-border px-2 py-1.5">
+                  <tr>
+                    <th className="w-[14%] border border-evaluation-table-border bg-evaluation-table-header px-2 py-1.5">
                       カテゴリ
                     </th>
-                    <th className="w-[43%] border border-evaluation-table-border px-2 py-1.5">
+                    <th className="w-[43%] border border-evaluation-table-border bg-chart-pre-bg px-2 py-1.5">
                       受講前の方がスコアが高い方の傾向
                     </th>
-                    <th className="w-[43%] border border-evaluation-table-border px-2 py-1.5">
+                    <th className="w-[43%] border border-evaluation-table-border bg-chart-post-bg px-2 py-1.5">
                       受講後の方がスコアが高い方の傾向
                     </th>
                   </tr>
@@ -459,31 +447,29 @@ export function EvaluationSheetWithData() {
                 <tbody>
                   {referenceRows.map((row, i) => (
                     <tr key={row.category}>
-                      <td className="border border-evaluation-table-border px-2 py-1.5 text-center">
+                      <td className="border border-evaluation-table-border bg-evaluation-table-header px-2 py-1.5 text-center">
                         <span className="block font-semibold">{row.category}</span>
                         <span className="text-[10px] text-muted-foreground">
                           {row.subtitle}
                         </span>
                       </td>
-                      <td className="border border-evaluation-table-border p-1 align-top">
-                        <Textarea
+                      <td className="border border-evaluation-table-border bg-chart-pre-bg p-1 align-top">
+                        <EditableField
                           value={row.preHigher}
-                          onChange={(e) => updateReference(i, "preHigher", e.target.value)}
-                          className="no-export min-h-[68px] resize-none border-none bg-transparent p-1 text-xs leading-snug"
+                          onChange={(v) => updateReference(i, "preHigher", v)}
+                          multiline
+                          inputClassName="min-h-[68px] text-xs leading-snug"
+                          textClassName="text-xs leading-snug"
                         />
-                        <div className="export-only whitespace-pre-line p-1 text-xs leading-snug">
-                          {row.preHigher}
-                        </div>
                       </td>
-                      <td className="border border-evaluation-table-border p-1 align-top">
-                        <Textarea
+                      <td className="border border-evaluation-table-border bg-chart-post-bg p-1 align-top">
+                        <EditableField
                           value={row.postHigher}
-                          onChange={(e) => updateReference(i, "postHigher", e.target.value)}
-                          className="no-export min-h-[68px] resize-none border-none bg-transparent p-1 text-xs leading-snug"
+                          onChange={(v) => updateReference(i, "postHigher", v)}
+                          multiline
+                          inputClassName="min-h-[68px] text-xs leading-snug"
+                          textClassName="text-xs leading-snug"
                         />
-                        <div className="export-only whitespace-pre-line p-1 text-xs leading-snug">
-                          {row.postHigher}
-                        </div>
                       </td>
                     </tr>
                   ))}
@@ -493,63 +479,117 @@ export function EvaluationSheetWithData() {
           </div>
 
           {/* ===== 総合評価シート（PDF 2ページ目） ===== */}
-          {current.aiComment !== undefined && (
+          {current.aiEvaluation && (
             <div
               ref={page2Ref}
               className="mx-auto mb-8 w-[1000px] max-w-full rounded-xl p-10 shadow-elegant"
               style={{ backgroundColor: "hsl(30 50% 90%)" }}
             >
-              <div className="mb-6 flex items-center justify-between border-b-2 border-primary pb-4">
-                <div>
-                  <h1 className="font-english-title text-3xl font-semibold tracking-wide">
-                    Horse Education Program
-                  </h1>
-                  <p className="mt-1 text-lg font-medium tracking-[0.3em]">
-                    OVERALL EVALUATION
-                  </p>
-                </div>
-                <HorseIllustration className="h-16 w-20 text-primary" />
+              <SheetHeader subtitleJa="総合評価" subtitleEn="COMPREHENSIVE EVALUATION" />
+              <BasicInfoTable />
+
+              <h2 className="mb-3 text-xl font-bold">総合評価</h2>
+              <table className="mb-4 w-full border-collapse text-sm">
+                <tbody>
+                  {EVALUATION_CATEGORY_KEYS.map((key) => (
+                    <tr key={key}>
+                      <td className="w-40 border border-evaluation-table-border bg-evaluation-table-header px-3 py-3 align-top">
+                        <span className="block font-bold">{SKILL_LABELS[key].en}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {SKILL_LABELS[key].subtitle}
+                        </span>
+                      </td>
+                      <td className="border border-evaluation-table-border p-1 align-top leading-relaxed">
+                        <EditableField
+                          value={current.aiEvaluation![key]}
+                          onChange={(v) =>
+                            updateCurrent({
+                              aiEvaluation: { ...current.aiEvaluation!, [key]: v },
+                            })
+                          }
+                          multiline
+                          inputClassName="min-h-[90px] text-sm leading-relaxed"
+                          textClassName="text-sm leading-relaxed"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="mb-6 text-sm leading-relaxed">
+                <EditableField
+                  value={current.aiEvaluation.summary}
+                  onChange={(v) =>
+                    updateCurrent({
+                      aiEvaluation: { ...current.aiEvaluation!, summary: v },
+                    })
+                  }
+                  multiline
+                  inputClassName="min-h-[140px] text-sm leading-relaxed"
+                  textClassName="text-sm leading-relaxed"
+                />
               </div>
-              <h2 className="mb-3 bg-evaluation-header px-3 py-1.5 text-base font-bold">
-                総合評価　—　{current.name}
-              </h2>
-              {editingComment ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={current.aiComment}
-                    onChange={(e) =>
-                      setParticipants((prev) =>
-                        prev.map((p, i) =>
-                          i === currentIndex ? { ...p, aiComment: e.target.value } : p
-                        )
-                      )
+
+              {/* チームからのメッセージ（スタッフが手動で記入する自由記述） */}
+              <div className="rounded-md border border-evaluation-table-border p-4">
+                <p className="mb-2 font-bold">【チームからのメッセージ】</p>
+                <div className="mb-2 w-40">
+                  <EditableField
+                    value={current.teamMessage?.author ?? ""}
+                    onChange={(v) =>
+                      updateCurrent({
+                        teamMessage: {
+                          author: v,
+                          body: current.teamMessage?.body ?? "",
+                        },
+                      })
                     }
-                    className="no-export min-h-[400px] bg-white/50 text-sm leading-relaxed"
+                    inputClassName="text-sm font-medium"
+                    textClassName="text-sm font-medium"
                   />
-                  <div className="export-only p-2">
-                    <FormattedComment text={current.aiComment} />
-                  </div>
-                  <Button
-                    size="sm"
-                    className="no-export"
-                    onClick={() => setEditingComment(false)}
-                  >
-                    編集を終了
-                  </Button>
                 </div>
-              ) : (
-                <div
-                  className="min-h-[200px] cursor-text rounded-md p-2 hover:bg-white/30"
-                  onClick={() => setEditingComment(true)}
-                  title="クリックで編集"
-                >
-                  <FormattedComment text={current.aiComment} />
+                <div className="text-sm leading-relaxed">
+                  <EditableField
+                    value={current.teamMessage?.body ?? ""}
+                    onChange={(v) =>
+                      updateCurrent({
+                        teamMessage: {
+                          author: current.teamMessage?.author ?? "",
+                          body: v,
+                        },
+                      })
+                    }
+                    multiline
+                    inputClassName="min-h-[100px] text-sm leading-relaxed"
+                    textClassName="text-sm leading-relaxed"
+                  />
                 </div>
-              )}
+              </div>
             </div>
           )}
         </>
       )}
     </div>
+  );
+}
+
+/** ヘッダー右上・所属欄などインラインで使う短い編集フィールド */
+function EditableFieldInline({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="no-export inline-block w-32 border-b border-border bg-transparent px-1 text-sm focus-visible:outline-none"
+      />
+      <span className="export-only-inline">{value}</span>
+    </>
   );
 }

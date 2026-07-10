@@ -8,21 +8,21 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { ParticipantData } from "@/types/survey";
-import { SKILL_KEYS, SKILL_LABELS } from "@/types/survey";
+import { RADAR_AXIS_ORDER, SKILL_LABELS } from "@/types/survey";
 
 interface Props {
   participant: ParticipantData;
 }
 
 export function SkillRadarChart({ participant }: Props) {
-  const data = SKILL_KEYS.map((key) => ({
+  const data = RADAR_AXIS_ORDER.map((key) => ({
     skill: SKILL_LABELS[key].en,
     pre: participant.preTraining?.[key] ?? 0,
     post: participant.postTraining?.[key] ?? 0,
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={340}>
+    <ResponsiveContainer width="100%" height={360}>
       <RechartsRadarChart data={data} cx="50%" cy="50%" outerRadius="72%">
         <PolarGrid gridType="polygon" stroke="hsl(25 30% 75%)" />
         <PolarAngleAxis
@@ -30,33 +30,37 @@ export function SkillRadarChart({ participant }: Props) {
           tick={{ fill: "hsl(20 25% 29%)", fontSize: 13, fontWeight: 500 }}
         />
         <PolarRadiusAxis
-          domain={[0, 10]}
+          domain={[0, "dataMax"]}
           tickCount={6}
           tick={{ fill: "hsl(20 15% 45%)", fontSize: 10 }}
         />
         {participant.preTraining && (
           <Radar
-            name="研修前"
+            name="受講前"
             dataKey="pre"
-            stroke="hsl(220 65% 35%)"
-            fill="hsl(220 65% 35%)"
-            fillOpacity={0.25}
+            stroke="hsl(var(--chart-pre-training))"
+            fill="hsl(var(--chart-pre-training))"
+            fillOpacity={0.3}
             strokeWidth={2}
             isAnimationActive={false}
           />
         )}
         {participant.postTraining && (
           <Radar
-            name="研修後"
+            name="受講後"
             dataKey="post"
-            stroke="hsl(340 35% 50%)"
-            fill="hsl(340 35% 50%)"
-            fillOpacity={0.25}
+            stroke="hsl(var(--chart-post-training))"
+            fill="hsl(var(--chart-post-training))"
+            fillOpacity={0.3}
             strokeWidth={2}
             isAnimationActive={false}
           />
         )}
-        <Legend wrapperStyle={{ fontSize: 13 }} />
+        <Legend
+          verticalAlign="top"
+          height={32}
+          wrapperStyle={{ fontSize: 13 }}
+        />
       </RechartsRadarChart>
     </ResponsiveContainer>
   );

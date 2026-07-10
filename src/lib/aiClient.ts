@@ -1,4 +1,4 @@
-import type { ParticipantData } from "@/types/survey";
+import type { AIEvaluation, ParticipantData } from "@/types/survey";
 
 export type AIProvider = "openai" | "gemini";
 
@@ -15,7 +15,8 @@ const SYSTEM_PROMPT = `あなたはHorse Educationプログラムの専門評価
 - Relating: 受講前→基本的な感謝・思いやり、受講後→より深いつながりの意識
 - Collaborating: 受講前→基礎的コミュニケーション力、受講後→多様性対応の協働力
 - Acting: 受講前→確実な行動力、受講後→希望と前向きな変化への意識
-スコアが下がった場合も、学習と気づきの過程として肯定的に解釈し、今後の成長可能性に言及してください。`;
+スコアが下がった場合も、学習と気づきの過程として肯定的に解釈し、今後の成長可能性に言及してください。
+回答は必ず指定されたJSON形式のみで出力し、前後に説明文やMarkdownのコードブロック記法（\`\`\`）を付けないでください。`;
 
 function formatScores(label: string, s?: { being: number; thinking: number; relating: number; collaborating: number; acting: number }): string {
   if (!s) return `${label}：データなし`;
@@ -28,12 +29,11 @@ ${formatScores("研修前スコア", p.preTraining)}
 ${formatScores("研修後スコア", p.postTraining)}
 ${formatScores("変化量", p.improvement)}
 
-600文字程度で、参加者の成長と今後の可能性について前向きな総合評価コメントを日本語で生成してください。
-必ず以下のフォーマットに従ってください：
-- 各カテゴリごとに分析
-- 各カテゴリの先頭に「**カテゴリ名（日本語名）**」（例：**Being（自分のあり方）**）
-- スコアの増減を具体的な数値で示す（例：3.25から5.0へと大幅に向上）
-- 全体で600文字程度`;
+以下のJSON形式でのみ回答してください：
+{"being": "...", "thinking": "...", "relating": "...", "collaborating": "...", "acting": "...", "summary": "..."}
+
+- being / thinking / relating / collaborating / acting: 各カテゴリについて100〜140字程度。スコアの増減を具体的な数値で示しながら（例：研修前6.5から研修後8.25へと1.75ポイント向上）、前向きに解説する。カテゴリ名や「**」は含めない
+- summary: 参加者名（${p.name}様）を用いて、5つの領域を横断した総合的な気づきや今後への期待を250〜300字程度でまとめる`;
 }
 
 export function getStoredApiKey(provider: AIProvider): string {
@@ -58,6 +58,32 @@ export function storeApiKey(provider: AIProvider, key: string): void {
   );
 }
 
+function stripCodeFence(text: string): string {
+  const trimmed = text.trim();
+  const m = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  return m ? m[1] : trimmed;
+}
+
+function parseAIEvaluation(raw: string): AIEvaluation {
+  const json = JSON.parse(stripCodeFence(raw));
+  const keys: (keyof AIEvaluation)[] = [
+    "being",
+    "thinking",
+    "relating",
+    "collaborating",
+    "acting",
+    "summary",
+  ];
+  const result = {} as AIEvaluation;
+  for (const key of keys) {
+    if (typeof json[key] !== "string" || !json[key].trim()) {
+      throw new Error(`AI応答に "${key}" フィールドがありません`);
+    }
+    result[key] = json[key].trim();
+  }
+  return result;
+}
+
 async function callOpenAI(apiKey: string, userPrompt: string): Promise<string> {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -73,6 +99,7 @@ async function callOpenAI(apiKey: string, userPrompt: string): Promise<string> {
       ],
       temperature: 0.7,
       max_tokens: 2048,
+      response_format: { type: "json_object" },
     }),
   });
   if (!res.ok) {
@@ -91,7 +118,11 @@ async function callGemini(apiKey: string, userPrompt: string): Promise<string> {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json",
+      },
     }),
   });
   if (!res.ok) {
@@ -106,16 +137,16 @@ async function callGemini(apiKey: string, userPrompt: string): Promise<string> {
   );
 }
 
-export async function generateAIComment(
+export async function generateAIEvaluation(
   participant: ParticipantData,
   provider: AIProvider,
   apiKey: string
-): Promise<string> {
+): Promise<AIEvaluation> {
   const userPrompt = buildUserPrompt(participant);
   const text =
     provider === "openai"
       ? await callOpenAI(apiKey, userPrompt)
       : await callGemini(apiKey, userPrompt);
   if (!text.trim()) throw new Error("AI からの応答が空でした");
-  return text.trim();
+  return parseAIEvaluation(text);
 }

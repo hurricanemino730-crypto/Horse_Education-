@@ -49,8 +49,9 @@ export const DEFAULT_REFERENCE_ROWS: ReferenceRow[] = [
 ];
 
 export const DEFAULT_BASIC_INFO = {
-  affiliation: "フェニックスリゾート株式会社",
+  affiliation: "個人",
   instructor: "宮田 朋典",
   program: "Horse Education Program",
-  date: "2025.01.17",
+  date: "2026.04.05",
+  venue: "吉川牧場",
 };

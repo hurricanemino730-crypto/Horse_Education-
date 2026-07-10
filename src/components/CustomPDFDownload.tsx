@@ -6,14 +6,14 @@ import { buildPdf, todayString } from "@/utils/pdf";
 
 interface Props {
   participantName: string;
-  hasComment: boolean;
+  hasEvaluation: boolean;
   getPage1: () => HTMLElement | null;
   getPage2: () => HTMLElement | null;
 }
 
 export function CustomPDFDownload({
   participantName,
-  hasComment,
+  hasEvaluation,
   getPage1,
   getPage2,
 }: Props) {
@@ -27,7 +27,7 @@ export function CustomPDFDownload({
     }
     setDownloading(true);
     try {
-      const pdf = await buildPdf(page1, hasComment ? getPage2() : null);
+      const pdf = await buildPdf(page1, hasEvaluation ? getPage2() : null);
       pdf.save(`評価シート_${participantName}_${todayString()}.pdf`);
       toast.success("PDFをダウンロードしました");
     } catch (e) {
