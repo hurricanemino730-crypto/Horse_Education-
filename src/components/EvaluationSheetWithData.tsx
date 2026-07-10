@@ -223,10 +223,10 @@ export function EvaluationSheetWithData() {
         1. 基本情報
       </h2>
       <div className="grid grid-cols-2 gap-x-6 gap-y-0 text-sm">
-        <table className="w-full border-collapse">
+        <table className="w-full table-fixed border-collapse">
           <tbody>
             <tr>
-              <td className="w-24 border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
+              <td className="w-32 whitespace-nowrap border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
                 受講者
               </td>
               <td className="border border-evaluation-table-border px-3 py-2">
@@ -234,39 +234,45 @@ export function EvaluationSheetWithData() {
               </td>
             </tr>
             <tr>
-              <td className="border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
+              <td className="w-32 whitespace-nowrap border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
                 所属
               </td>
               <td className="border border-evaluation-table-border px-1 py-1">
                 <EditableFieldInline
                   value={basicInfo.affiliation}
                   onChange={(v) => setBasicInfo((b) => ({ ...b, affiliation: v }))}
+                  widthClassName="w-full"
+                  placeholder="所属を入力"
                 />
               </td>
             </tr>
           </tbody>
         </table>
-        <table className="w-full border-collapse">
+        <table className="w-full table-fixed border-collapse">
           <tbody>
             <tr>
-              <td className="w-28 border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
+              <td className="w-32 whitespace-nowrap border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
                 講師
               </td>
               <td className="border border-evaluation-table-border px-1 py-1">
                 <EditableFieldInline
                   value={basicInfo.instructor}
                   onChange={(v) => setBasicInfo((b) => ({ ...b, instructor: v }))}
+                  widthClassName="w-full"
+                  placeholder="講師名を入力"
                 />
               </td>
             </tr>
             <tr>
-              <td className="border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
+              <td className="w-32 whitespace-nowrap border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
                 研修プログラム
               </td>
               <td className="border border-evaluation-table-border px-1 py-1">
                 <EditableFieldInline
                   value={basicInfo.program}
                   onChange={(v) => setBasicInfo((b) => ({ ...b, program: v }))}
+                  widthClassName="w-full"
+                  placeholder="研修プログラム名を入力"
                 />
               </td>
             </tr>
@@ -518,7 +524,12 @@ export function EvaluationSheetWithData() {
 
               {/* チームからのメッセージ（スタッフが手動で記入する自由記述） */}
               <div className="rounded-md border border-evaluation-table-border p-4">
-                <p className="mb-2 font-bold">【チームからのメッセージ】</p>
+                <p
+                  className="mb-2 font-bold tracking-wide"
+                  style={{ fontFeatureSettings: "normal" }}
+                >
+                  【チームからのメッセージ】
+                </p>
                 <div className="mb-2 w-40">
                   <EditableField
                     value={current.teamMessage?.author ?? ""}
@@ -559,20 +570,25 @@ export function EvaluationSheetWithData() {
   );
 }
 
-/** ヘッダー右上・所属欄などインラインで使う短い編集フィールド */
+/** ヘッダー右上・基本情報欄などインラインで使う1行の編集フィールド */
 function EditableFieldInline({
   value,
   onChange,
+  widthClassName = "w-32",
+  placeholder,
 }: {
   value: string;
   onChange: (v: string) => void;
+  widthClassName?: string;
+  placeholder?: string;
 }) {
   return (
     <>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="no-export inline-block w-32 border-b border-border bg-transparent px-1 text-sm focus-visible:outline-none"
+        placeholder={placeholder}
+        className={`no-export inline-block border-b border-border bg-transparent px-1 text-sm focus-visible:outline-none ${widthClassName}`}
       />
       <span className="export-only-inline">{value}</span>
     </>
