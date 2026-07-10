@@ -237,13 +237,8 @@ export function EvaluationSheetWithData() {
               <td className="w-32 whitespace-nowrap border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
                 所属
               </td>
-              <td className="border border-evaluation-table-border px-1 py-1">
-                <EditableFieldInline
-                  value={basicInfo.affiliation}
-                  onChange={(v) => setBasicInfo((b) => ({ ...b, affiliation: v }))}
-                  widthClassName="w-full"
-                  placeholder="所属を入力"
-                />
+              <td className="border border-evaluation-table-border px-3 py-2">
+                {basicInfo.affiliation}
               </td>
             </tr>
           </tbody>
@@ -254,26 +249,16 @@ export function EvaluationSheetWithData() {
               <td className="w-32 whitespace-nowrap border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
                 講師
               </td>
-              <td className="border border-evaluation-table-border px-1 py-1">
-                <EditableFieldInline
-                  value={basicInfo.instructor}
-                  onChange={(v) => setBasicInfo((b) => ({ ...b, instructor: v }))}
-                  widthClassName="w-full"
-                  placeholder="講師名を入力"
-                />
+              <td className="border border-evaluation-table-border px-3 py-2">
+                {basicInfo.instructor}
               </td>
             </tr>
             <tr>
               <td className="w-32 whitespace-nowrap border border-evaluation-table-border bg-evaluation-table-header px-3 py-2 font-medium">
                 研修プログラム
               </td>
-              <td className="border border-evaluation-table-border px-1 py-1">
-                <EditableFieldInline
-                  value={basicInfo.program}
-                  onChange={(v) => setBasicInfo((b) => ({ ...b, program: v }))}
-                  widthClassName="w-full"
-                  placeholder="研修プログラム名を入力"
-                />
+              <td className="border border-evaluation-table-border px-3 py-2">
+                {basicInfo.program}
               </td>
             </tr>
           </tbody>
@@ -319,6 +304,41 @@ export function EvaluationSheetWithData() {
                 onChange={(e) => setPostFile(e.target.files?.[0] ?? null)}
               />
               {postFile && <p className="text-xs text-muted-foreground">{postFile.name}</p>}
+            </div>
+          </div>
+          <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="basic-info-affiliation">所属</Label>
+              <Input
+                id="basic-info-affiliation"
+                value={basicInfo.affiliation}
+                onChange={(e) =>
+                  setBasicInfo((b) => ({ ...b, affiliation: e.target.value }))
+                }
+                placeholder="所属を入力"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="basic-info-instructor">講師</Label>
+              <Input
+                id="basic-info-instructor"
+                value={basicInfo.instructor}
+                onChange={(e) =>
+                  setBasicInfo((b) => ({ ...b, instructor: e.target.value }))
+                }
+                placeholder="講師名を入力"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="basic-info-program">研修プログラム</Label>
+              <Input
+                id="basic-info-program"
+                value={basicInfo.program}
+                onChange={(e) =>
+                  setBasicInfo((b) => ({ ...b, program: e.target.value }))
+                }
+                placeholder="研修プログラム名を入力"
+              />
             </div>
           </div>
           <Button onClick={handleAnalyze} disabled={analyzing} className="w-full">
