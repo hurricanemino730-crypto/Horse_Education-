@@ -1,10 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Upload,
   FileSpreadsheet,
   ChevronLeft,
   ChevronRight,
-  Bot,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,15 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SkillRadarChart } from "@/components/charts/RadarChart";
-import { HorseIllustration } from "@/components/HorseIllustration";
 import { CustomPDFDownload } from "@/components/CustomPDFDownload";
-import { BulkPDFDownload } from "@/components/BulkPDFDownload";
 import { parseExcelFile, mergeParticipants } from "@/lib/excelProcessor";
 import {
   generateAIEvaluation,
   getStoredApiKey,
   storeApiKey,
-  type AIProvider,
 } from "@/lib/aiClient";
 import type { ParticipantData } from "@/types/survey";
 import { SKILL_LABELS } from "@/types/survey";
@@ -89,14 +85,12 @@ export function EvaluationSheetWithData() {
     DEFAULT_REFERENCE_ROWS
   );
 
-  const [provider, setProvider] = useState<AIProvider>("openai");
   const [showKeyDialog, setShowKeyDialog] = useState(false);
   const [keyInput, setKeyInput] = useState("");
 
   const page1Ref = useRef<HTMLDivElement>(null);
   const page2Ref = useRef<HTMLDivElement>(null);
-  const participantsRef = useRef<ParticipantData[]>(participants);
-  participantsRef.current = participants;
+  const attemptedRef = useRef<Set<number>>(new Set());
 
   const current = participants[currentIndex];
 
@@ -120,6 +114,7 @@ export function EvaluationSheetWithData() {
         toast.error("参加者データが見つかりませんでした");
         return;
       }
+      attemptedRef.current.clear();
       setParticipants(merged);
       setCurrentIndex(0);
       toast.success(`${merged.length}名の参加者データを分析しました`);
@@ -131,18 +126,20 @@ export function EvaluationSheetWithData() {
     }
   };
 
-  const handleGenerateEvaluation = async () => {
-    if (!current) return;
-    const apiKey = getStoredApiKey(provider);
+  const generateForIndex = async (index: number) => {
+    const target = participants[index];
+    if (!target) return;
+    const apiKey = getStoredApiKey();
     if (!apiKey) {
       setShowKeyDialog(true);
       return;
     }
     setGenerating(true);
     try {
-      const evaluation = await generateAIEvaluation(current, provider, apiKey);
-      updateCurrent({ aiEvaluation: evaluation });
-      toast.success("総合評価を生成しました");
+      const evaluation = await generateAIEvaluation(target, apiKey);
+      setParticipants((prev) =>
+        prev.map((p, i) => (i === index ? { ...p, aiEvaluation: evaluation } : p))
+      );
     } catch (e) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "AI総合評価の生成に失敗しました");
@@ -151,18 +148,27 @@ export function EvaluationSheetWithData() {
     }
   };
 
+  // ファイルをアップロードして参加者が表示されたら、自動でAI総合評価を生成する
+  useEffect(() => {
+    if (!current || current.aiEvaluation) return;
+    if (attemptedRef.current.has(currentIndex)) return;
+    if (!getStoredApiKey()) {
+      setShowKeyDialog(true);
+      return;
+    }
+    attemptedRef.current.add(currentIndex);
+    void generateForIndex(currentIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, current]);
+
   const handleSaveKey = () => {
     if (!keyInput.trim()) return;
-    storeApiKey(provider, keyInput.trim());
+    storeApiKey(keyInput.trim());
     setKeyInput("");
     setShowKeyDialog(false);
     toast.success("APIキーを保存しました");
-    handleGenerateEvaluation();
-  };
-
-  const selectParticipantAndWait = async (index: number) => {
-    setCurrentIndex(index);
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    attemptedRef.current.add(currentIndex);
+    void generateForIndex(currentIndex);
   };
 
   const updateReference = (
@@ -192,7 +198,6 @@ export function EvaluationSheetWithData() {
           {subtitleEn}
         </p>
       </div>
-      <HorseIllustration className="h-20 w-28 text-primary" />
       <div className="text-right text-sm">
         <p>
           <span className="text-muted-foreground">実施日　：</span>
@@ -344,36 +349,18 @@ export function EvaluationSheetWithData() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value as AIProvider)}
-                className="h-10 rounded-md border border-border bg-transparent px-2 text-sm"
-              >
-                <option value="openai">OpenAI (gpt-4o-mini)</option>
-                <option value="gemini">Gemini (gemini-2.5-flash)</option>
-              </select>
-              <Button onClick={handleGenerateEvaluation} disabled={generating}>
-                {generating ? (
+            <div className="flex flex-wrap items-center gap-3">
+              {generating && (
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Bot className="h-4 w-4" />
-                )}
-                総合評価を生成
-              </Button>
+                  AI総合評価を生成中…
+                </span>
+              )}
               <CustomPDFDownload
                 participantName={current.name}
                 hasEvaluation={Boolean(current.aiEvaluation)}
                 getPage1={() => page1Ref.current}
                 getPage2={() => page2Ref.current}
-              />
-              <BulkPDFDownload
-                participants={participants}
-                implementationDate={basicInfo.date}
-                selectParticipant={selectParticipantAndWait}
-                getPage1={() => page1Ref.current}
-                getPage2={() => page2Ref.current}
-                hasEvaluation={(i) => Boolean(participantsRef.current[i]?.aiEvaluation)}
               />
             </div>
           </div>
@@ -383,9 +370,7 @@ export function EvaluationSheetWithData() {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
               <Card className="w-full max-w-md bg-background">
                 <CardHeader>
-                  <CardTitle>
-                    {provider === "openai" ? "OpenAI" : "Gemini"} APIキーを入力
-                  </CardTitle>
+                  <CardTitle>Gemini APIキーを入力</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
@@ -395,7 +380,7 @@ export function EvaluationSheetWithData() {
                     type="password"
                     value={keyInput}
                     onChange={(e) => setKeyInput(e.target.value)}
-                    placeholder={provider === "openai" ? "sk-..." : "AIza..."}
+                    placeholder="AIza..."
                   />
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" onClick={() => setShowKeyDialog(false)}>

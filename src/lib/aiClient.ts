@@ -1,7 +1,5 @@
 import type { AIEvaluation, ParticipantData } from "@/types/survey";
 
-export type AIProvider = "openai" | "gemini";
-
 const SYSTEM_PROMPT = `あなたはHorse Educationプログラムの専門評価者です。参加者の研修前後のスキル評価データを分析し、成長に焦点を当てた建設的で前向きなフィードバックを提供してください。
 5つのスキル領域について分析します：
 1. Being（自分のあり方）- 内なるコンパス、誠実さ、オープンさ、自己理解、プレゼンス
@@ -36,14 +34,7 @@ ${formatScores("変化量", p.improvement)}
 - summary: 参加者名（${p.name}様）を用いて、5つの領域を横断した総合的な気づきや今後への期待を250〜300字程度でまとめる`;
 }
 
-export function getStoredApiKey(provider: AIProvider): string {
-  if (provider === "openai") {
-    return (
-      (import.meta.env.VITE_OPENAI_API_KEY as string | undefined) ||
-      localStorage.getItem("openai_api_key") ||
-      ""
-    );
-  }
+export function getStoredApiKey(): string {
   return (
     (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ||
     localStorage.getItem("gemini_api_key") ||
@@ -51,11 +42,8 @@ export function getStoredApiKey(provider: AIProvider): string {
   );
 }
 
-export function storeApiKey(provider: AIProvider, key: string): void {
-  localStorage.setItem(
-    provider === "openai" ? "openai_api_key" : "gemini_api_key",
-    key
-  );
+export function storeApiKey(key: string): void {
+  localStorage.setItem("gemini_api_key", key);
 }
 
 function stripCodeFence(text: string): string {
@@ -82,32 +70,6 @@ function parseAIEvaluation(raw: string): AIEvaluation {
     result[key] = json[key].trim();
   }
   return result;
-}
-
-async function callOpenAI(apiKey: string, userPrompt: string): Promise<string> {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 2048,
-      response_format: { type: "json_object" },
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`OpenAI API エラー (${res.status}): ${body.slice(0, 200)}`);
-  }
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content ?? "";
 }
 
 async function callGemini(apiKey: string, userPrompt: string): Promise<string> {
@@ -139,14 +101,10 @@ async function callGemini(apiKey: string, userPrompt: string): Promise<string> {
 
 export async function generateAIEvaluation(
   participant: ParticipantData,
-  provider: AIProvider,
   apiKey: string
 ): Promise<AIEvaluation> {
   const userPrompt = buildUserPrompt(participant);
-  const text =
-    provider === "openai"
-      ? await callOpenAI(apiKey, userPrompt)
-      : await callGemini(apiKey, userPrompt);
+  const text = await callGemini(apiKey, userPrompt);
   if (!text.trim()) throw new Error("AI からの応答が空でした");
   return parseAIEvaluation(text);
 }
