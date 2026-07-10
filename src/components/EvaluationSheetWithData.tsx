@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -167,8 +168,10 @@ export function EvaluationSheetWithData() {
     setKeyInput("");
     setShowKeyDialog(false);
     toast.success("APIキーを保存しました");
-    attemptedRef.current.add(currentIndex);
-    void generateForIndex(currentIndex);
+    if (current && !current.aiEvaluation) {
+      attemptedRef.current.add(currentIndex);
+      void generateForIndex(currentIndex);
+    }
   };
 
   const updateReference = (
@@ -269,13 +272,53 @@ export function EvaluationSheetWithData() {
 
   return (
     <div className="mx-auto max-w-[1800px] px-4 py-8 font-japanese">
+      {/* APIキー入力ダイアログ（常時どこからでも開ける） */}
+      {showKeyDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <Card className="w-full max-w-md bg-background">
+            <CardHeader>
+              <CardTitle>Gemini APIキーを入力</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                APIキーはこの端末のlocalStorageにのみ保存されます。Google AI
+                Studio（aistudio.google.com/apikey）で取得したキーを入力してください。
+              </p>
+              <Input
+                type="password"
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                placeholder="AIza..."
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setShowKeyDialog(false)}>
+                  キャンセル
+                </Button>
+                <Button onClick={handleSaveKey}>保存する</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* アップロードセクション */}
       <Card className="mx-auto mb-8 max-w-3xl">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
             アンケートExcelのアップロード
           </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setKeyInput("");
+              setShowKeyDialog(true);
+            }}
+          >
+            <KeyRound className="h-4 w-4" />
+            Gemini APIキーを設定
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -390,34 +433,6 @@ export function EvaluationSheetWithData() {
               />
             </div>
           </div>
-
-          {/* APIキー入力ダイアログ */}
-          {showKeyDialog && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-              <Card className="w-full max-w-md bg-background">
-                <CardHeader>
-                  <CardTitle>Gemini APIキーを入力</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    APIキーはこの端末のlocalStorageにのみ保存されます。
-                  </p>
-                  <Input
-                    type="password"
-                    value={keyInput}
-                    onChange={(e) => setKeyInput(e.target.value)}
-                    placeholder="AIza..."
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" onClick={() => setShowKeyDialog(false)}>
-                      キャンセル
-                    </Button>
-                    <Button onClick={handleSaveKey}>保存して生成</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {/* ===== 評価シート（PDF 1ページ目） ===== */}
           <div
