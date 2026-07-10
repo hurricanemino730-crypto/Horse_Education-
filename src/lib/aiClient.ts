@@ -87,9 +87,9 @@ function extractErrorMessage(body: string): string {
 }
 
 async function callGemini(apiKey: string, userPrompt: string): Promise<string> {
-  // gemini-2.5-flash: 無料枠のクォータが gemini-2.5-pro より大幅に広く、
-  // 参加者複数名分を連続生成しても 429 (クォータ超過) になりにくい
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  // gemini-2.5-flash は新規発行のAPIキーでは利用不可（404）になったため、
+  // 現行の安定版・推奨モデルである gemini-3.5-flash を使用する
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -38,7 +38,7 @@ npm run build          # 本番ビルド → dist/
 
 ## AI 総合評価
 
-Google Gemini（gemini-2.5-flash）のみを使用します。APIキーは以下の優先順で使用されます：
+Google Gemini（gemini-3.5-flash）のみを使用します。APIキーは以下の優先順で使用されます：
 
 1. `.env` の `VITE_GEMINI_API_KEY`
 2. 画面上のダイアログで入力（localStorage に保存）
@@ -47,7 +47,9 @@ Google Gemini（gemini-2.5-flash）のみを使用します。APIキーは以下
 
 アップロードカード右上の「Gemini APIキーを設定」ボタンから、Excelをアップロードする前でもいつでもキーを入力・変更できます。[Google AI Studio](https://aistudio.google.com/apikey) でGoogleアカウントにログインし、無料で取得できます。
 
-> **モデルについて**: `gemini-2.5-pro` の方が文章品質は高い傾向にありますが、無料枠のクォータ（利用上限）が非常に少なく、参加者数名分を連続生成するとすぐに `429 (quota exceeded)` エラーになります。参加者複数名を扱うこのアプリでは `gemini-2.5-flash` を既定にしています。429エラーが出た場合は、Google AI Studio でプラン・クォータをご確認いただくか、時間をおいてから再度お試しください。
+> **モデルについて**: `gemini-2.5-flash` は新規発行のAPIキーでは利用できなくなった（404エラー）ため、現行の安定版・推奨モデルである `gemini-3.5-flash` を使用しています。Gemini APIのモデルは提供終了になることがあるため、`models/xxx is no longer available` のようなエラーが出た場合は、[Gemini API モデル一覧](https://ai.google.dev/gemini-api/docs/models) で現行の安定版モデルIDを確認し、`src/lib/aiClient.ts` の `callGemini` 内のURLを更新してください。
+>
+> `gemini-2.5-pro` 系の高性能モデルは文章品質が高い傾向にありますが、無料枠のクォータ（利用上限）が非常に少なく、参加者数名分を連続生成するとすぐに `429 (quota exceeded)` エラーになります。429エラーが出た場合は、Google AI Studio でプラン・クォータをご確認いただくか、時間をおいてから再度お試しください。
 
 > **注意**: `.env` のキーはビルド後の JS に埋め込まれます。公開サイトでは「ユーザーが自分のキーを入力する」方式を推奨します。
 
